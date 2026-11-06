@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iiinunu0 | Portfolio & Quest Log</title>
+  <meta name="description" content="エンジニア職志望 iiinunu0 の重厚なギルド風ポートフォリオです。">
+
+  <!-- CDN: Tailwind CSS (Play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- CDN: Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- CDN: Google Fonts (Cinzel: 重厚な洋風フォント, Noto Serif JP: 重厚な和文見出し, Noto Sans JP: 高い視認性の本文) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Noto+Serif+JP:wght@600;900&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            cinzel: ['"Cinzel"', 'serif'],
+            serif: ['"Noto Serif JP"', 'serif'],
+            sans: ['"Noto Sans JP"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            iron: {
+              950: '#0c0e12',
+              900: '#13171f',
+              850: '#181e28',
+              800: '#202633',
+              700: '#2e3749',
+              600: '#434f66',
+            },
+            brass: {
+              100: '#fbf5e6',
+              200: '#f2e4bf',
+              300: '#e4cd91',
+              400: '#d5b364',
+              500: '#c59d3f', /* 主要な古美金・真鍮 */
+              600: '#a87e2a',
+              700: '#84601c',
+              800: '#5c4113',
+            },
+            parchment: {
+              50: '#faf7f0',
+              100: '#f3ece0',
+              200: '#e5d7c3',
+              800: '#3d3427',
+              900: '#231d14',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* 焚き火・火の粉の背景キャンバス（ポインターイベントなし＝完全非ブロッキング） */
+    #ember-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* クエストボード・重厚な金属フレーム枠装飾 */
+    .guild-panel {
+      position: relative;
+      background: linear-gradient(180deg, rgba(26, 32, 44, 0.95) 0%, rgba(18, 22, 30, 0.98) 100%);
+      border: 1px solid #434f66;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(197, 157, 63, 0.2);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .guild-panel:hover {
+      border-color: #c59d3f;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7), 0 0 15px rgba(197, 157, 63, 0.2);
+    }
+
+    /* 重厚な真鍮の四隅コーナー金具 */
+    .guild-panel::before, .guild-panel::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      transition: border-color 0.25s ease;
+    }
+    .guild-panel::before {
+      top: -1px; left: -1px;
+      border-top: 3px solid #c59d3f;
+      border-left: 3px solid #c59d3f;
+    }
+    .guild-panel::after {
+      bottom: -1px; right: -1px;
+      border-bottom: 3px solid #c59d3f;
+      border-right: 3px solid #c59d3f;
+    }
+
+    /* 金文字の刻印テクスチャ */
+    .engraved-gold {
+      background: linear-gradient(135deg, #fbf5e6 0%, #e4cd91 40%, #c59d3f 75%, #84601c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    /* スクロールを一切妨げない高速フェードイン (CSSのみ、0.35秒) */
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+      will-change: opacity, transform;
+    }
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 印刷時の視認性最適化 (PDF出力) */
+    @media print {
+      #ember-canvas, header, footer, .no-print { display: none !important; }
+      body { background: white !important; color: #111 !important; }
+      .guild-panel { background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; }
+      .engraved-gold { -webkit-text-fill-color: #111 !important; color: #111 !important; }
+      .text-slate-300, .text-slate-400 { color: #333 !important; }
+    }
+  </style>
+</head>
+<body class="bg-iron-950 text-slate-200 font-sans antialiased leading-relaxed selection:bg-brass-600 selection:text-white relative min-h-screen">
+
+  <!-- 非ブロッキングの火の粉演出（スクロール・クリック操作に完全非干渉） -->
+  <canvas id="ember-canvas"></canvas>
+
+  <!-- ヘッダー（ギルド看板風デザイン） -->
+  <header class="sticky top-0 z-40 bg-iron-900/95 backdrop-blur-md border-b border-iron-700/80 shadow-lg">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5 group">
+        <!-- ギルドクレスト風のオリジナルアイコン -->
+        <div class="w-8 h-8 rounded bg-gradient-to-br from-brass-500 to-brass-800 border border-brass-400 flex items-center justify-center text-iron-950 shadow-md shadow-brass-900/30">
+          <i class="fa-solid fa-shield-halved text-sm"></i>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-cinzel font-bold text-lg tracking-wider engraved-gold">iiinunu0</span>
+          <span class="text-[10px] text-brass-400 font-mono tracking-widest uppercase -mt-1">Engineer Guild Card</span>
+        </div>
+      </a>
+
+      <!-- ナビゲーションリンク（ホバー時に金色のアンダーライン） -->
+      <nav class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-300">
+        <a href="#summary" class="hover:text-brass-300 transition-colors">強み要約</a>
+        <a href="#skills" class="hover:text-brass-300 transition-colors">装備スキル</a>
+        <a href="#projects" class="hover:text-brass-300 transition-colors">クエスト実績</a>
+        <a href="#research" class="hover:text-brass-300 transition-colors">学業・研究</a>
+        <a href="#certifications" class="hover:text-brass-300 transition-colors">公認資格</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="https://github.com/iiinunu0" target="_blank" rel="noopener noreferrer" class="text-slate-300 hover:text-brass-300 text-lg p-2 transition-colors" title="GitHub">
+          <i class="fa-brands fa-github"></i>
+        </a>
+        <button onclick="window.print()" class="no-print inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brass-200 bg-iron-800 hover:bg-iron-700 rounded border border-brass-600/50 transition-colors shadow-sm">
+          <i class="fa-solid fa-print"></i> PDF/印刷
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+
+    <!-- 1. ギルド登録証（ヒーローセクション） -->
+    <section id="profile" class="guild-panel rounded-lg p-6 sm:p-8 reveal">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 bg-iron-850 border border-brass-600/60 rounded text-xs font-semibold text-brass-300 tracking-wide">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            情報系大学 / 2026年卒業見込み / エンジニア職志望
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-cinzel font-black tracking-wide engraved-gold">
+            iiinunu0
+          </h1>
+          <p class="text-base text-slate-200 font-serif font-semibold flex items-center gap-2">
+            <i class="fa-solid fa-compass text-brass-400 text-sm"></i>
+            志望領域: クラウド / IoT / サーバー・Webシステム開発
+          </p>
+          <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
+            「IT技術を通じて誰もが便利さを享受できる社会」の実現を目指すエンジニアです。複雑な操作やシステムに苦手意識を持つ方でも直感的に使いこなせる設計を重視し、大学ではネットワーク・サーバープログラミング、研究室ではIoTとクラウドの連携を専門に探求しています。
+          </p>
+        </div>
+
+        <!-- リンク・ステータス銘板 -->
+        <div class="flex-shrink-0 bg-iron-900 border border-iron-700 rounded-md p-4 space-y-2.5 text-sm min-w-[230px] shadow-inner">
+          <div class="font-cinzel font-bold text-brass-400 text-xs border-b border-iron-700 pb-1.5 flex items-center gap-2">
+            <i class="fa-solid fa-scroll text-brass-500"></i> GUILD RECORD
+          </div>
+          <div class="flex items-center gap-2 text-slate-300">
+            <i class="fa-brands fa-github w-4 text-brass-400"></i>
+            <a href="https://github.com/iiinunu0" target="_blank" rel="noopener" class="hover:text-brass-300 font-mono text-xs underline decoration-brass-600">github.com/iiinunu0</a>
+          </div>
+          <div class="flex items-center gap-2 text-slate-300">
+            <i class="fa-solid fa-users-rectangle w-4 text-brass-400"></i>
+            <span class="text-xs text-slate-300">チーム開発演習 経験</span>
+          </div>
+          <div class="flex items-center gap-2 text-slate-300">
+            <i class="fa-solid fa-file-signature w-4 text-brass-400"></i>
+            <span class="text-xs text-slate-300">自治体HP委託業務（実務1年）</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 特性・強み要約（30秒サマリー） -->
+    <section id="summary" class="guild-panel rounded-lg p-6 sm:p-7 reveal">
+      <div class="flex items-center gap-2.5 mb-4 border-b border-iron-700 pb-2">
+        <i class="fa-solid fa-bolt-lightning text-brass-400 text-base"></i>
+        <h2 class="font-serif font-bold text-lg text-slate-100">
+          採用担当者様向け：私の強み 3点要約
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div class="bg-iron-900/80 p-4 rounded border border-iron-700/80 hover:border-brass-600/70 transition-colors space-y-1.5">
+          <div class="flex items-center gap-1.5 font-bold text-brass-300">
+            <span class="text-xs px-1.5 py-0.5 rounded bg-iron-800 border border-brass-600/40 text-brass-200">01</span>
+            自ら調べ習得する粘り強い探求力
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            未知のエラーや未習得技術に直面しても諦めず、技術文書や公式資料を徹底調査。理解を深めたうえで実際のコードに落とし込み、確かな技術力として定着させます。
+          </p>
+        </div>
+
+        <div class="bg-iron-900/80 p-4 rounded border border-iron-700/80 hover:border-brass-600/70 transition-colors space-y-1.5">
+          <div class="flex items-center gap-1.5 font-bold text-brass-300">
+            <span class="text-xs px-1.5 py-0.5 rounded bg-iron-800 border border-brass-600/40 text-brass-200">02</span>
+            ペルソナ分析による共通認識の形成
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            チーム開発ではペルソナ分析を導入し、メンバー間の想定ユーザー像や要件のブレを解消。「利用者が迷わず価値を実感できる設計」を軸にチームを推進します。
+          </p>
+        </div>
+
+        <div class="bg-iron-900/80 p-4 rounded border border-iron-700/80 hover:border-brass-600/70 transition-colors space-y-1.5">
+          <div class="flex items-center gap-1.5 font-bold text-brass-300">
+            <span class="text-xs px-1.5 py-0.5 rounded bg-iron-800 border border-brass-600/40 text-brass-200">03</span>
+            対話を通じた実務Web運用経験
+          </div>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            自治体ホームページ更新を委託で担当（1年）。依頼者の掲載意図やニュアンスを丁寧に汲み取り、閲覧者（市民）への視認性にも配慮した迅速な情報発信を実践。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 技術スキル（装備・武器技術銘板） -->
+    <section id="skills" class="space-y-4 reveal">
+      <div class="border-b border-iron-700 pb-2 flex items-baseline justify-between">
+        <h2 class="text-2xl font-serif font-bold text-slate-100 flex items-center gap-2.5">
+          <i class="fa-solid fa-shield text-brass-400 text-xl"></i>
+          <span>習得技術スキル & 活用ツール</span>
+        </h2>
+        <span class="text-xs text-brass-400 font-mono">ARSENAL & TECHNICAL PROFICIENCY</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- プログラミング言語 -->
+        <div class="guild-panel rounded-lg p-5 space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-iron-700">
+            <div class="flex items-center gap-2 font-serif font-bold text-slate-100">
+              <i class="fa-solid fa-code text-brass-400"></i> プログラミング言語
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono uppercase">Languages</span>
+          </div>
+
+          <div class="space-y-3.5 text-sm">
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-brands fa-java text-amber-500"></i> Java
+                </span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">経験3年程度</span>
+              </div>
+              <p class="text-xs text-slate-300">オブジェクト指向設計、大学授業・アプリケーション開発の実装経験。</p>
+            </div>
+
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-brands fa-js text-yellow-400"></i> TypeScript / JavaScript
+                </span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">経験2年程度</span>
+              </div>
+              <p class="text-xs text-slate-300">Webフロントエンドおよびサーバーサイド、各種アプリ開発での実装。</p>
+            </div>
+
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-brands fa-python text-sky-400"></i> Python
+                </span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">研究室で使用中 (&lt;1年)</span>
+              </div>
+              <p class="text-xs text-slate-300">IoTデバイス連携、センサーデータの取得・処理、スクリプト作成。</p>
+            </div>
+
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-solid fa-cube text-slate-400"></i> C++ / C#
+                </span>
+                <span class="text-xs bg-iron-800 text-slate-400 px-2 py-0.5 rounded border border-iron-700 font-mono">講義演習 (&lt;1年)</span>
+              </div>
+              <p class="text-xs text-slate-300">基礎文法、アルゴリズムとデータ構造の基礎理解。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- フレームワーク・ネットワーク・Web -->
+        <div class="guild-panel rounded-lg p-5 space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-iron-700">
+            <div class="flex items-center gap-2 font-serif font-bold text-slate-100">
+              <i class="fa-solid fa-network-wired text-brass-400"></i> Web・ネットワーク・IoT
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono uppercase">Systems & Networks</span>
+          </div>
+
+          <div class="space-y-3.5 text-sm">
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-brands fa-react text-cyan-400"></i> React
+                </span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">研究室で使用中 (&lt;1年)</span>
+              </div>
+              <p class="text-xs text-slate-300">コンポーネント指向UI設計、データ可視化画面の実装。</p>
+            </div>
+
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-solid fa-server text-indigo-400"></i> ネットワーク・サーバープログラミング
+                </span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">講義・演習</span>
+              </div>
+              <p class="text-xs text-slate-300">ソケット通信、クライアント/サーバー構造、リアルタイムデータ同期の実装。</p>
+            </div>
+
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-solid fa-microchip text-emerald-400"></i> IoT技術 & クラウド連携
+                </span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">研究テーマ</span>
+              </div>
+              <p class="text-xs text-slate-300">各種センサーからの情報収集とクラウド側でのデータ活用・運用を探究。</p>
+            </div>
+
+            <div class="p-2.5 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100 flex items-center gap-1.5">
+                  <i class="fa-solid fa-globe text-teal-400"></i> Wix (Web運用・制作)
+                </span>
+                <span class="text-xs bg-iron-800 text-emerald-400 px-2 py-0.5 rounded border border-emerald-600/40 font-mono">受託実務 (1年)</span>
+              </div>
+              <p class="text-xs text-slate-300">自治体HPの更新業務、コンテンツ配置設計、依頼者の意図に沿った情報伝達。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 開発補助・AIツール活用（実直な探求力と効率化） -->
+        <div class="guild-panel rounded-lg p-5 space-y-3 md:col-span-2">
+          <div class="flex items-center justify-between pb-2 border-b border-iron-700">
+            <div class="flex items-center gap-2 font-serif font-bold text-slate-100">
+              <i class="fa-solid fa-wand-magic-sparkles text-brass-400"></i> 開発効率化 & AIツール活用
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono uppercase">Modern Engineering Tools</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div class="p-3 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100">Claude Code</span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">活用歴1年程度</span>
+              </div>
+              <p class="text-xs text-slate-300">
+                コーディングの補助ツールとして活用。設計の壁打ち、テスト作成、効率的なエラー調査・デバッグに利用。
+              </p>
+            </div>
+            <div class="p-3 bg-iron-900/70 rounded border border-iron-800">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-slate-100">ChatGPT</span>
+                <span class="text-xs bg-iron-800 text-brass-300 px-2 py-0.5 rounded border border-brass-600/40 font-mono">活用歴3年程度</span>
+              </div>
+              <p class="text-xs text-slate-300">
+                新しい技術概念の初動調査、ドキュメントの要約整理など、学習効率向上のために日常的に継続導入。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 開発実績・取り組み（クエストログ形式） -->
+    <section id="projects" class="space-y-6 reveal">
+      <div class="border-b border-iron-700 pb-2 flex items-baseline justify-between">
+        <h2 class="text-2xl font-serif font-bold text-slate-100 flex items-center gap-2.5">
+          <i class="fa-solid fa-map-location-dot text-brass-400 text-xl"></i>
+          <span>開発実績 & クエストログ</span>
+        </h2>
+        <span class="text-xs text-brass-400 font-mono">ACCOMPLISHED MISSIONS</span>
+      </div>
+
+      <!-- クエスト 1: キャンバス共有アプリ -->
+      <article class="guild-panel rounded-lg overflow-hidden">
+        <!-- クエストヘッダー -->
+        <div class="bg-iron-900/90 px-6 py-3 border-b border-iron-700 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded bg-brass-700 text-brass-100 text-xs font-bold font-serif border border-brass-500/50">チーム開発演習</span>
+            <span class="text-xs text-slate-300">ネットワーク/サーバープログラミング演習</span>
+          </div>
+          <span class="text-xs text-brass-400 font-mono">リアルタイム描画同期 / ペルソナ分析</span>
+        </div>
+
+        <div class="p-6 sm:p-7 space-y-5">
+          <div>
+            <h3 class="text-xl font-serif font-bold text-slate-100">
+              キャンバス共有アプリ
+            </h3>
+            <p class="text-slate-300 text-sm mt-1 leading-relaxed">
+              複数ユーザーがネットワークを介して同一キャンバス上で同時にアイデアや描画を共有できるシステム。
+            </p>
+          </div>
+
+          <!-- タグ一覧 -->
+          <div class="space-y-1.5">
+            <span class="text-xs font-bold text-brass-400 uppercase tracking-wider block font-mono">キーワード・技術領域</span>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">ネットワークプログラミング</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">サーバープログラミング</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">ソケット通信</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">チーム合意形成</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="bg-iron-900/80 p-4 rounded border border-iron-700 space-y-1.5">
+              <span class="font-bold text-brass-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-users text-brass-400"></i> 注力点: ペルソナ分析による認識統一
+              </span>
+              <p class="text-slate-300 leading-normal">
+                メンバー間で作りたい機能や想定ユーザー像に対する考えが異なると、方向性が定まらなくなるため、ペルソナを設定してユーザーのニーズを具体化。意見を密に共有することで共通認識を形成しました。
+              </p>
+            </div>
+            <div class="bg-iron-900/80 p-4 rounded border border-iron-700 space-y-1.5">
+              <span class="font-bold text-brass-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-graduation-cap text-brass-400"></i> 得られた技術的知見
+              </span>
+              <p class="text-slate-300 leading-normal">
+                ネットワーク通信によるデータ同期の実装を通じ、低遅延な同期制御と、利用者が迷わずに直感的に扱えるUI/UXの重要性を学びました。
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- クエスト 2: 散歩記録アプリ -->
+      <article class="guild-panel rounded-lg overflow-hidden">
+        <div class="bg-iron-900/90 px-6 py-3 border-b border-iron-700 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded bg-brass-700 text-brass-100 text-xs font-bold font-serif border border-brass-500/50">チーム開発演習</span>
+            <span class="text-xs text-slate-300">ネットワーク/サーバープログラミング演習</span>
+          </div>
+          <span class="text-xs text-brass-400 font-mono">習慣化サポート / 導線設計</span>
+        </div>
+
+        <div class="p-6 sm:p-7 space-y-5">
+          <div>
+            <h3 class="text-xl font-serif font-bold text-slate-100">
+              散歩記録アプリ
+            </h3>
+            <p class="text-slate-300 text-sm mt-1 leading-relaxed">
+              日々の歩行記録や移動データを管理し、利用者が無理なく記録を習慣化できるようサポートするシステム。
+            </p>
+          </div>
+
+          <div class="space-y-1.5">
+            <span class="text-xs font-bold text-brass-400 uppercase tracking-wider block font-mono">キーワード・技術領域</span>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">サーバープログラミング</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">データ永続化</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">UI/UX設計</span>
+            </div>
+          </div>
+
+          <div class="bg-iron-900/80 p-4 rounded border border-iron-700 space-y-1.5 text-xs sm:text-sm">
+            <span class="font-bold text-brass-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-bullseye text-brass-400"></i> 利用者視点での機能選定
+            </span>
+            <p class="text-slate-300 leading-normal">
+              多機能化による操作の複雑化を防ぐため、散歩の記録・振り返りに必要なコア機能に絞り込み、操作に不慣れな人でも直感的に使い続けられる導線設計を意識しました。
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- クエスト 3: 自治体ホームページ更新（実務委託） -->
+      <article class="guild-panel rounded-lg overflow-hidden">
+        <div class="bg-iron-900/90 px-6 py-3 border-b border-iron-700 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded bg-emerald-800 text-emerald-100 text-xs font-bold font-serif border border-emerald-600/50">受託実務</span>
+            <span class="text-xs text-slate-300">委託業務（期間: 1年程度）</span>
+          </div>
+          <span class="text-xs text-emerald-400 font-mono">Wix / Web運用 / クライアントヒアリング</span>
+        </div>
+
+        <div class="p-6 sm:p-7 space-y-5">
+          <div>
+            <h3 class="text-xl font-serif font-bold text-slate-100">
+              自治体公式ホームページの更新・運用業務
+            </h3>
+            <p class="text-slate-300 text-sm mt-1 leading-relaxed">
+              自治体のホームページ更新業務を委託で担当。行政と市民をつなぐ正確で分かりやすいWeb情報発信を実践。
+            </p>
+          </div>
+
+          <div class="space-y-1.5">
+            <span class="text-xs font-bold text-brass-400 uppercase tracking-wider block font-mono">使用ツール・業務領域</span>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">Wix</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">Webレイアウト調整</span>
+              <span class="px-2.5 py-1 bg-iron-900 text-slate-200 text-xs rounded border border-iron-700 font-mono">要望ヒアリング・すり合わせ</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="bg-iron-900/80 p-4 rounded border border-iron-700 space-y-1.5">
+              <span class="font-bold text-brass-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-comments text-brass-400"></i> 対話による共通認識の形成
+              </span>
+              <p class="text-slate-300 leading-normal">
+                依頼者との間で掲載内容や意図を事前に細かく確認し、認識をすり合わせることで、要望に合致した的確な情報発信を徹底しました。
+              </p>
+            </div>
+            <div class="bg-iron-900/80 p-4 rounded border border-iron-700 space-y-1.5">
+              <span class="font-bold text-brass-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-eye text-brass-400"></i> 多様な市民に向けた視認性の担保
+              </span>
+              <p class="text-slate-300 leading-normal">
+                幅広い年齢層が閲覧する公共サイトであることを常に意識し、重要な告知が見落とされないメリハリのある情報配置を心がけました。
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- 5. 学業・研究（IoT × クラウドの探求） -->
+    <section id="research" class="guild-panel rounded-lg p-6 sm:p-7 reveal space-y-4">
+      <div class="border-b border-iron-700 pb-2 flex items-baseline justify-between">
+        <h2 class="text-xl font-serif font-bold text-slate-100 flex items-center gap-2.5">
+          <i class="fa-solid fa-satellite-dish text-brass-400"></i>
+          <span>学業・研究室での取り組み（IoT × クラウド）</span>
+        </h2>
+        <span class="text-xs text-brass-400 font-mono">ACADEMIC RESEARCH</span>
+      </div>
+
+      <div class="space-y-3.5 text-sm text-slate-300 leading-relaxed">
+        <div class="bg-iron-900/70 p-3.5 rounded border border-iron-800">
+          <strong class="text-brass-300 font-serif">所属研究室:</strong>
+          <span class="text-slate-200 ml-2">IoTを中心とする研究室（Python / React 等を活用中）</span>
+        </div>
+
+        <div class="space-y-1">
+          <strong class="text-slate-100 block font-serif">■ 研究室を志望した理由・目的:</strong>
+          <p class="text-slate-300">
+            「専門的で複雑な技術を、誰もが手軽に利用できる形で普及させたい」という想いから志望しました。IoTは、様々な機器から情報を収集し、ネットワークやクラウドを通じて活用することで、人々の生活や企業の業務利便性を格段に向上させられる領域です。
+          </p>
+        </div>
+
+        <div class="space-y-1">
+          <strong class="text-slate-100 block font-serif">■ 今後の展望・学習方針:</strong>
+          <p class="text-slate-300">
+            IoTデバイスとクラウド（データ蓄積・AI解析・安定運用）の相互連携について理解を深め、技術を社会に役立てるための知識と実践的な視野を広げていきます。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. 公認資格銘板 -->
+    <section id="certifications" class="space-y-4 reveal">
+      <div class="border-b border-iron-700 pb-2 flex items-baseline justify-between">
+        <h2 class="text-2xl font-serif font-bold text-slate-100 flex items-center gap-2.5">
+          <i class="fa-solid fa-award text-brass-400 text-xl"></i>
+          <span>公認資格・ライセンス</span>
+        </h2>
+        <span class="text-xs text-brass-400 font-mono">OFFICIAL LICENSES</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="guild-panel rounded-lg p-5 flex items-start gap-4">
+          <div class="w-11 h-11 rounded bg-iron-900 text-brass-400 flex items-center justify-center flex-shrink-0 text-xl border border-brass-600/50 shadow-inner">
+            <i class="fa-solid fa-certificate"></i>
+          </div>
+          <div>
+            <span class="text-xs text-brass-400 font-mono font-semibold tracking-wider">国家資格 / IT基盤</span>
+            <h3 class="text-base font-serif font-bold text-slate-100">基本情報技術者試験 (FE)</h3>
+            <p class="text-xs text-slate-400 mt-1 font-mono">2026年 合格</p>
+          </div>
+        </div>
+
+        <div class="guild-panel rounded-lg p-5 flex items-start gap-4">
+          <div class="w-11 h-11 rounded bg-iron-900 text-slate-400 flex items-center justify-center flex-shrink-0 text-xl border border-iron-700 shadow-inner">
+            <i class="fa-solid fa-car"></i>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 font-mono font-semibold tracking-wider">運転免許</span>
+            <h3 class="text-base font-serif font-bold text-slate-100">普通自動車第一種運転免許</h3>
+            <p class="text-xs text-slate-400 mt-1 font-mono">2025年 取得</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. 目指すエンジニア像 -->
+    <section id="vision" class="guild-panel rounded-lg p-6 sm:p-8 space-y-3 reveal">
+      <h2 class="text-lg font-serif font-bold flex items-center gap-2 text-brass-300">
+        <i class="fa-solid fa-feather-pointed"></i> 将来像・目指すエンジニアの姿
+      </h2>
+      <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+        専門的な技術力にとどまらず、顧客やチームとの対話を通じて本質的な課題を発見し、クラウドやIoT・AIなどの最適な技術を選択・提案できるエンジニアを目指します。「誰もが価値を実感できるシステム」を提供し、人や企業の可能性を広げることに貢献していきます。
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-iron-800 bg-iron-900/80 py-6 text-center text-xs text-slate-500 relative z-10">
+    <div class="max-w-5xl mx-auto px-4 space-y-1">
+      <p class="font-cinzel text-brass-500/80 text-sm">iiinunu0 / Portfolio</p>
+      <p>© 2026 iiinunu0. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- スクロールを一切妨げない動的スクリプト（非ブロッキング） -->
+  <script>
+    // 1. スクロール連動の非ブロッキング フェードイン (IntersectionObserver)
+    // スクロールイベントを乗っ取らず、GPUによる標準の高速描画のみ利用
+    const reveals = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.08,
+        rootMargin: '0px 0px -40px 0px'
+      });
+      reveals.forEach(el => observer.observe(el));
+    } else {
+      reveals.forEach(el => el.classList.add('active'));
+    }
+
+    // 2. 背景の微小な焚き火の粉塵（Ember particles）演出
+    // pointer-events: none のため、クリック・ホイール・スワイプに一切干渉しません
+    (function initEmberCanvas() {
+      const canvas = document.getElementById('ember-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      // 軽量なパーティクル数（CPU/バッテリー負荷を最小化）
+      const PARTICLE_COUNT = 38;
+      const particles = [];
+
+      function createParticle() {
+        return {
+          x: Math.random() * width,
+          y: height + Math.random() * 20,
+          size: Math.random() * 2.2 + 0.8,
+          speedY: Math.random() * 0.9 + 0.35,
+          speedX: (Math.random() - 0.5) * 0.5,
+          opacity: Math.random() * 0.7 + 0.2,
+          fadeSpeed: Math.random() * 0.004 + 0.002,
+          color: Math.random() > 0.4 ? '197, 157, 63' : '228, 205, 145' // 真鍮・琥珀色
+        };
+      }
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const p = createParticle();
+        p.y = Math.random() * height; // 初期分散
+        particles.push(p);
+      }
+
+      let animationFrameId;
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.y -= p.speedY;
+          p.x += p.speedX;
+          p.opacity -= p.fadeSpeed;
+
+          if (p.opacity <= 0 || p.y < -10) {
+            particles[i] = createParticle();
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${p.color}, ${p.opacity})`;
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = `rgba(${p.color}, 0.5)`;
+          ctx.fill();
+        }
+
+        animationFrameId = requestAnimationFrame(animate);
+      }
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>
